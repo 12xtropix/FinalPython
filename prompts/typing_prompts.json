@@ -1,0 +1,8 @@
+{
+  "regular_prompts": [
+    "prompt 1",
+    "prmopt 2",
+    "prompt 3"
+  ],
+  "faker_prompt": "prompt 4"
+}
