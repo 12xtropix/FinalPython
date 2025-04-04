@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fakin' It Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script> <!-- SocketIO client library -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+        }
+        #counter {
+            font-size: 2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Fakin' It!</h1>
+    <h1>By Adam, Nathan, Stefan, and Ben</h1>
+
+    <!-- Display Counter -->
+    <div id="counter">Counter: 0</div>
+
+    <!-- Button to Increment Counter -->
+    <button onclick="incrementCounter()">Increment Counter</button>
+
+    <script>
+        // Connecting to the SocketIO server
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Function to send increment request to the server
+        function incrementCounter() {
+            socket.emit('increment_counter');  // Emit event to increment counter on server
+        }
+
+        // Listening for counter updates from the server
+        socket.on('counter_update', function(data) {
+            document.getElementById('counter').innerText = 'Counter: ' + data.counter;
+        });
+    </script>
+</body>
+</html>
