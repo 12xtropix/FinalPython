@@ -23,6 +23,10 @@
           margin-top: 20px;
           color: green;
       }
+      #players {
+          margin-top: 10px;
+          font-weight: bold;
+      }
   </style>
 </head>
 <body>
@@ -35,8 +39,11 @@
         <button onclick="joinGame()">Join Game</button>
     </div>
 
-    <!-- Area to display broadcast messages -->
+    <!-- Area to display broadcast join messages -->
     <div id="messages"></div>
+
+    <!-- Display list of players -->
+    <div id="players">Players: </div>
 
     <!-- Display Counter -->
     <div id="counter">Counter: 0</div>
@@ -45,7 +52,7 @@
     <button onclick="incrementCounter()">Increment Counter</button>
 
     <script>
-        // Connecting to the SocketIO server
+        // Connect to the SocketIO server
         var socket = io.connect('http://' + document.domain + ':' + location.port);
 
         // Emit join_game event when user clicks join
@@ -66,9 +73,14 @@
             messagesDiv.appendChild(newMessage);
         });
 
+        // Listen for updated players list to update the UI immediately
+        socket.on('players_update', function(data) {
+            document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
+        });
+
         // Function to send increment request to the server
         function incrementCounter() {
-            socket.emit('increment_counter');  // Emit event to increment counter on server
+            socket.emit('increment_counter');
         }
 
         // Listening for counter updates from the server

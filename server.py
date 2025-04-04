@@ -58,17 +58,27 @@ def increment_counter():
     game_data['counter'] += 1
     emit('counter_update', {'counter': game_data['counter']}, broadcast=True)
 
-# New SocketIO event for when a player joins
+# SocketIO event for when a player joins
 @socketio.on('join_game')
 def handle_join_game(data):
     username = data.get('username')
     if username:
-        # Optionally, add the new username to your game data or players list if needed.
+        # Add new username to your game data if not already present.
         if username not in players:
             players.append(username)
             game_data["player_scores"][username] = 0  # Initialize score for the new player
         # Broadcast the join message to all connected clients.
         emit('player_joined', {'message': f'{username} has joined the game!'}, broadcast=True)
+        # Also broadcast the updated players list.
+        emit('players_update', {'players': players}, broadcast=True)
+
+# New event: send current state when a client connects
+@socketio.on('connect')
+def handle_connect():
+    # Send the current counter value to the newly connected client.
+    emit('counter_update', {'counter': game_data['counter']})
+    # Send the current players list to the newly connected client.
+    emit('players_update', {'players': players})
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
