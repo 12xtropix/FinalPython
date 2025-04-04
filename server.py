@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, emit  # Importing SocketIO
+from flask_socketio import SocketIO, emit
 import random
-#test
+
 app = Flask(__name__)
-socketio = SocketIO(app)  # Initializing SocketIO
+socketio = SocketIO(app)
 
 # Game data
 players = []
@@ -24,13 +24,10 @@ def index():
 
 @app.route('/start', methods=['POST'])
 def start_game():
-    global players
-    global game_data
-
+    global players, game_data
     players = ["Player 1", "Player 2", "Player 3"]  # Example players
     game_data["player_scores"] = {player: 0 for player in players}
     game_data["player_role"] = {player: "faker" if i == 0 else "normal" for i, player in enumerate(players)}
-
     return jsonify({"status": "game started", "game_data": game_data})
 
 @app.route('/play', methods=['POST'])
@@ -47,7 +44,7 @@ def play():
     return jsonify({"status": response})
 
 def handle_answer(player_name):
-    if game_data["player_role"][player_name] == "faker":
+    if game_data["player_role"].get(player_name) == "faker":
         return faker_prompt
     else:
         return random.choice(prompts)
@@ -61,5 +58,17 @@ def increment_counter():
     game_data['counter'] += 1
     emit('counter_update', {'counter': game_data['counter']}, broadcast=True)
 
+# New SocketIO event for when a player joins
+@socketio.on('join_game')
+def handle_join_game(data):
+    username = data.get('username')
+    if username:
+        # Optionally, add the new username to your game data or players list if needed.
+        if username not in players:
+            players.append(username)
+            game_data["player_scores"][username] = 0  # Initialize score for the new player
+        # Broadcast the join message to all connected clients.
+        emit('player_joined', {'message': f'{username} has joined the game!'}, broadcast=True)
+
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)  # Run with SocketIO
+    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)

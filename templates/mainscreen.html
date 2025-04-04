@@ -1,26 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fakin' It Game</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script> <!-- SocketIO client library -->
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: white;
-        }
-        #counter {
-            font-size: 2em;
-            margin-top: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fakin' It Game</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script> <!-- SocketIO client library -->
+  <style>
+      body {
+          font-family: Arial, sans-serif;
+          text-align: center;
+          padding: 20px;
+          background-color: white;
+      }
+      #counter {
+          font-size: 2em;
+          margin-top: 20px;
+      }
+      #join-container {
+          margin-bottom: 20px;
+      }
+      #messages {
+          margin-top: 20px;
+          color: green;
+      }
+  </style>
 </head>
 <body>
     <h1>Welcome to Fakin' It!</h1>
-    <h1>By Adam, Nathan, Stefan, and Ben</h1>
+    <h2>By Adam, Nathan, Stefan, and Ben</h2>
+
+    <!-- New: Name input -->
+    <div id="join-container">
+        <input type="text" id="username" placeholder="Enter your name">
+        <button onclick="joinGame()">Join Game</button>
+    </div>
+
+    <!-- Area to display broadcast messages -->
+    <div id="messages"></div>
 
     <!-- Display Counter -->
     <div id="counter">Counter: 0</div>
@@ -31,6 +47,24 @@
     <script>
         // Connecting to the SocketIO server
         var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Emit join_game event when user clicks join
+        function joinGame() {
+            var username = document.getElementById('username').value;
+            if (username) {
+                socket.emit('join_game', { username: username });
+                // Optionally, hide the join container after joining
+                document.getElementById('join-container').style.display = 'none';
+            }
+        }
+
+        // Listen for a broadcast that a player has joined
+        socket.on('player_joined', function(data) {
+            var messagesDiv = document.getElementById('messages');
+            var newMessage = document.createElement('div');
+            newMessage.innerText = data.message;
+            messagesDiv.appendChild(newMessage);
+        });
 
         // Function to send increment request to the server
         function incrementCounter() {
