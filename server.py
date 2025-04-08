@@ -43,6 +43,14 @@ def play():
 
     return jsonify({"status": response})
 
+@app.route('/host')
+def host():
+    return render_template('hostscreen.html')
+
+@app.route('/player')
+def player():
+    return render_template('playerscreen.html')
+
 def handle_answer(player_name):
     if game_data["player_role"].get(player_name) == "faker":
         return faker_prompt
@@ -61,7 +69,7 @@ def increment_counter():
 # SocketIO event for when a player joins
 @socketio.on('join_game')
 def handle_join_game(data):
-    username = data.get('username')
+    username = data.get('username') #make a max char limit of 12
     if username:
         # Add new username to your game data if not already present.
         if username not in players:

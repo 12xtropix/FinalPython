@@ -33,60 +33,20 @@
     <h1>Welcome to Fakin' It!</h1>
     <h2>By Adam, Nathan, Stefan, and Ben</h2>
 
-    <!-- New: Name input -->
-    <div id="join-container">
-        <input type="text" id="username" placeholder="Enter your name">
-        <button onclick="joinGame()">Join Game</button>
+    <!-- Role Selection -->
+    <div id="role-selection">
+        <button onclick="chooseRole('host')">Host</button>
+        <button onclick="chooseRole('player')">Player</button>
     </div>
 
-    <!-- Area to display broadcast join messages -->
-    <div id="messages"></div>
-
-    <!-- Display list of players -->
-    <div id="players">Players: </div>
-
-    <!-- Display Counter -->
-    <div id="counter">Counter: 0</div>
-
-    <!-- Button to Increment Counter -->
-    <button onclick="incrementCounter()">Increment Counter</button>
-
     <script>
-        // Connect to the SocketIO server
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
-
-        // Emit join_game event when user clicks join
-        function joinGame() {
-            var username = document.getElementById('username').value;
-            if (username) {
-                socket.emit('join_game', { username: username });
-                // Optionally, hide the join container after joining
-                document.getElementById('join-container').style.display = 'none';
+        function chooseRole(role) {
+            if (role === 'host') {
+                window.location.href = '/host'; // Redirect to host-specific screen
+            } else if (role === 'player') {
+                window.location.href = '/player'; // Redirect to player-specific screen
             }
         }
-
-        // Listen for a broadcast that a player has joined
-        socket.on('player_joined', function(data) {
-            var messagesDiv = document.getElementById('messages');
-            var newMessage = document.createElement('div');
-            newMessage.innerText = data.message;
-            messagesDiv.appendChild(newMessage);
-        });
-
-        // Listen for updated players list to update the UI immediately
-        socket.on('players_update', function(data) {
-            document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
-        });
-
-        // Function to send increment request to the server
-        function incrementCounter() {
-            socket.emit('increment_counter');
-        }
-
-        // Listening for counter updates from the server
-        socket.on('counter_update', function(data) {
-            document.getElementById('counter').innerText = 'Counter: ' + data.counter;
-        });
     </script>
 </body>
 </html>
