@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Host Screen - Fakin' It</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
   <style>
@@ -21,17 +21,22 @@
           font-size: 1.2em;
           padding: 10px 20px;
       }
+      #countdown {
+          margin-top: 20px;
+          font-size: 2em;
+          color: red;
+      }
   </style>
 </head>
 <body>
     <h1>Host Screen</h1>
 
     <div id="player-list">Players: </div>
-
     <button id="start-button" onclick="startGame()">Start Game</button>
+    <div id="countdown">Waiting to start...</div>
 
     <script>
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
 
         socket.on('players_update', function(data) {
             document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
@@ -40,6 +45,21 @@
         function startGame() {
             socket.emit('start_game');
         }
+
+        socket.on('start_countdown', function(data) {
+            let seconds = data.seconds;
+            const countdownDiv = document.getElementById('countdown');
+
+            const interval = setInterval(() => {
+                countdownDiv.innerText = `Time left: ${seconds}s`;
+                seconds--;
+            if (seconds < 0) {
+                clearInterval(interval);
+                countdownDiv.innerText = "Time's up!";
+                }
+            }, 1000);
+        });
+
     </script>
 </body>
 </html>

@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Fakin' It Game</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script> <!-- SocketIO client library -->
   <style>
       body {
           font-family: Arial, sans-serif;
@@ -16,24 +15,12 @@
           font-size: 2em;
           margin-top: 20px;
       }
-      #join-container {
-          margin-bottom: 20px;
-      }
-      #messages {
-          margin-top: 20px;
-          color: green;
-      }
-      #players {
-          margin-top: 10px;
-          font-weight: bold;
-      }
   </style>
 </head>
 <body>
     <h1>Welcome to Fakin' It!</h1>
     <h2>By Adam, Nathan, Stefan, and Ben</h2>
 
-    <!-- Role Selection -->
     <div id="role-selection">
         <button onclick="chooseRole('host')">Host</button>
         <button onclick="chooseRole('player')">Player</button>
@@ -42,9 +29,9 @@
     <script>
         function chooseRole(role) {
             if (role === 'host') {
-                window.location.href = '/host'; // Redirect to host-specific screen
+                window.location.href = '/host';
             } else if (role === 'player') {
-                window.location.href = '/player'; // Redirect to player-specific screen
+                window.location.href = '/player';
             }
         }
     </script>

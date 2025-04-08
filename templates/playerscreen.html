@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Player Screen - Fakin' It</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
   <style>
@@ -25,35 +25,36 @@
     <h1>Player Screen</h1>
     <h2>Enter Your Name</h2>
 
-    <!-- Name input field for players -->
     <div id="username-container">
         <input type="text" id="username" placeholder="Enter your name">
         <button onclick="joinGame()">Join Game</button>
     </div>
 
-    <!-- Display list of players -->
     <div id="players">Players: </div>
 
     <script>
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
-    var username = '';
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
+        let username = '';
 
-    function joinGame() {
-        username = document.getElementById('username').value;
-        if (username) {
-            socket.emit('join_game', { username: username });
-            document.getElementById('username-container').style.display = 'none';
+        function joinGame() {
+            username = document.getElementById('username').value;
+            if (username && username.length <= 12) {
+                socket.emit('join_game', { username: username });
+                document.getElementById('username-container').style.display = 'none';
+            }
         }
-    }
 
-    socket.on('players_update', function(data) {
-        document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
-    });
+        socket.on('players_update', function(data) {
+            document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
+        });
 
-    // NEW: Listen for game start
-    socket.on('game_started', function() {
-        document.body.innerHTML = '<h1>Game Started!</h1><p>Waiting for your prompt...</p>';
-    });
-</script>
+        socket.on('game_started', function() {
+            document.body.innerHTML = '<h1>Game Started!</h1>';
+        });
+
+        socket.on('serve_prompt', function(data) {
+            document.body.innerHTML += `<div><h2>${data.prompt}</h2></div>`;
+        });
+    </script>
 </body>
 </html>
