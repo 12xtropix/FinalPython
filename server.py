@@ -66,6 +66,10 @@ def increment_counter():
     game_data['counter'] += 1
     emit('counter_update', {'counter': game_data['counter']}, broadcast=True)
 
+@socketio.on('start_game')
+def handle_start_game():
+    emit('game_started', broadcast=True)
+
 # SocketIO event for when a player joins
 @socketio.on('join_game')
 def handle_join_game(data):

@@ -5,16 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Host Screen - Fakin' It</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+  <style>
+      body {
+          font-family: Arial, sans-serif;
+          text-align: center;
+          padding: 20px;
+          background-color: white;
+      }
+      #player-list {
+          margin-top: 20px;
+          font-weight: bold;
+      }
+      #start-button {
+          margin-top: 30px;
+          font-size: 1.2em;
+          padding: 10px 20px;
+      }
+  </style>
 </head>
 <body>
     <h1>Host Screen</h1>
-    <div id="host-messages"></div>
-    <!-- Game Controls, Prompts, and Voting UI -->
+
+    <div id="player-list">Players: </div>
+
+    <button id="start-button" onclick="startGame()">Start Game</button>
 
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-        // Host-specific logic can go here: controlling rounds, sending prompts, etc.
+        socket.on('players_update', function(data) {
+            document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
+        });
+
+        function startGame() {
+            socket.emit('start_game');
+        }
     </script>
 </body>
 </html>

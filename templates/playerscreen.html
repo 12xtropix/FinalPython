@@ -35,23 +35,25 @@
     <div id="players">Players: </div>
 
     <script>
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
-        var username = '';
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    var username = '';
 
-        // Emit join_game event when user clicks join
-        function joinGame() {
-            username = document.getElementById('username').value;
-            if (username) {
-                socket.emit('join_game', { username: username });
-                // Hide the username input field after joining
-                document.getElementById('username-container').style.display = 'none';
-            }
+    function joinGame() {
+        username = document.getElementById('username').value;
+        if (username) {
+            socket.emit('join_game', { username: username });
+            document.getElementById('username-container').style.display = 'none';
         }
+    }
 
-        // Listen for updated players list to update the UI immediately
-        socket.on('players_update', function(data) {
-            document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
-        });
-    </script>
+    socket.on('players_update', function(data) {
+        document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
+    });
+
+    // NEW: Listen for game start
+    socket.on('game_started', function() {
+        document.body.innerHTML = '<h1>Game Started!</h1><p>Waiting for your prompt...</p>';
+    });
+</script>
 </body>
 </html>
