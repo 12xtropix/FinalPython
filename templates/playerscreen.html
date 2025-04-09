@@ -6,55 +6,77 @@
   <title>Player Screen - Fakin' It</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
   <style>
-      body {
-          font-family: Arial, sans-serif;
-          text-align: center;
-          padding: 20px;
-          background-color: white;
-      }
-      #players {
-          margin-top: 20px;
-          font-weight: bold;
-      }
-      #username-container {
-          margin-bottom: 20px;
-      }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: white;
+    }
+    #players {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    #username-container {
+      margin-bottom: 20px;
+    }
+    #game-type {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin-top: 40px;
+    }
+    #prompt-display {
+      font-size: 1.2em;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-    <h1>Player Screen</h1>
-    <h2>Enter Your Name</h2>
+  <h1>Player Screen</h1>
+  <h2>Enter Your Name</h2>
 
-    <div id="username-container">
-        <input type="text" id="username" placeholder="Enter your name">
-        <button onclick="joinGame()">Join Game</button>
-    </div>
+  <div id="username-container">
+    <input type="text" id="username" placeholder="Enter your name" maxlength="20"/>
+    <button onclick="joinGame()">Join Game</button>
+  </div>
 
-    <div id="players">Players: </div>
+  <div id="players">Players: </div>
 
-    <script>
-        const socket = io.connect('http://' + document.domain + ':' + location.port);
-        let username = '';
+  <!-- Game state UI after game starts -->
+  <div id="game-type"></div>
+  <div id="prompt-display"></div>
 
-        function joinGame() {
-            username = document.getElementById('username').value;
-            if (username && username.length <= 12) {
-                socket.emit('join_game', { username: username });
-                document.getElementById('username-container').style.display = 'none';
-            }
-        }
+  <script>
+  const socket = io.connect('http://' + document.domain + ':' + location.port);
+  let username = '';
 
-        socket.on('players_update', function(data) {
-            document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
-        });
+  function joinGame() {
+    username = document.getElementById('username').value.trim();
+    if (username) {
+      socket.emit('join_game', { username: username });
+      document.getElementById('username-container').style.display = 'none';
+    }
+  }
 
-        socket.on('game_started', function() {
-            document.body.innerHTML = '<h1>Game Started!</h1>';
-        });
+  socket.on('players_update', function(data) {
+    document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
+  });
 
-        socket.on('serve_prompt', function(data) {
-            document.body.innerHTML += `<div><h2>${data.prompt}</h2></div>`;
-        });
-    </script>
+  socket.on('serve_prompt', function(data) {
+    document.body.innerHTML = '';
+
+    const gameType = document.createElement('div');
+    const promptDisplay = document.createElement('div');
+
+    gameType.id = "game-type";
+    gameType.innerText = `Game: ${data.prompt_type.toUpperCase()}`;
+
+    promptDisplay.id = "prompt-display";
+    promptDisplay.innerText = data.prompt_text;
+
+    document.body.appendChild(gameType);
+    document.body.appendChild(promptDisplay);
+  });
+</script>
+
 </body>
 </html>

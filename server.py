@@ -12,11 +12,10 @@ faker_prompt = []
 player_sockets = {}  # username -> socket ID
 
 game_data = {
-    "rounds": 5,
+    "rounds": 4,
     "current_round": 1,
     "player_scores": {},
     "player_role": {},  # Mapping player -> role (faker or normal)
-    "counter": 0  # New variable for the counter
 }
 
 
@@ -87,7 +86,7 @@ def generate_prompt_sequence():
 @socketio.on('join_game')
 def handle_join_game(data):
     username = data.get('username')
-    if username and len(username) <= 12:
+    if username and len(username) <= 20:
         if username not in players:
             players.append(username)
             game_data["player_scores"][username] = 0
@@ -112,6 +111,7 @@ def handle_start_game():
     }
 
     current_prompt = prompts[game_data["current_round"] - 1]
+    prompt_type = current_prompt.split('_')[0]
 
     for player in players:
         role = game_data["player_role"].get(player)
@@ -120,22 +120,21 @@ def handle_start_game():
             continue
 
         if role == "faker":
-            socketio.emit('serve_prompt', {"prompt": "You are the faker"}, room=sid)
+            prompt_text = "You are the faker. Try to blend in!"
         else:
-            socketio.emit('serve_prompt', {"prompt": current_prompt}, room=sid)
+            prompt_text = current_prompt
+
+        socketio.emit(
+            'serve_prompt',
+            {"prompt_type": prompt_type, "prompt_text": prompt_text},
+            room=sid
+        )
 
     socketio.emit('start_countdown', {"seconds": 20})
 
 
-@socketio.on('increment_counter')
-def increment_counter():
-    game_data['counter'] += 1
-    emit('counter_update', {'counter': game_data['counter']}, broadcast=True)
-
-
 @socketio.on('connect')
 def handle_connect():
-    emit('counter_update', {'counter': game_data['counter']})
     emit('players_update', {'players': players})
 
 
