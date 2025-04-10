@@ -19,6 +19,9 @@
     #username-container {
       margin-bottom: 20px;
     }
+    #ready-section {
+      margin-top: 20px;
+    }
     #game-type {
       font-size: 1.5em;
       font-weight: bold;
@@ -41,42 +44,43 @@
 
   <div id="players">Players: </div>
 
-  <!-- Game state UI after game starts -->
   <div id="game-type"></div>
   <div id="prompt-display"></div>
 
+  <div id="ready-section" style="display: none;">
+    <button onclick="sendReady()">I'm Ready</button>
+  </div>
+
   <script>
-  const socket = io.connect('http://' + document.domain + ':' + location.port);
-  let username = '';
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+    let username = '';
 
-  function joinGame() {
-    username = document.getElementById('username').value.trim();
-    if (username) {
-      socket.emit('join_game', { username: username });
-      document.getElementById('username-container').style.display = 'none';
+    function joinGame() {
+      username = document.getElementById('username').value.trim();
+      if (username) {
+        socket.emit('join_game', { username: username });
+        document.getElementById('username-container').style.display = 'none';
+      }
     }
-  }
 
-  socket.on('players_update', function(data) {
-    document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
-  });
+    function sendReady() {
+      socket.emit('player_ready', { username: username });
+      document.getElementById('ready-section').innerHTML = "Waiting for others...";
+    }
 
-  socket.on('serve_prompt', function(data) {
-    document.body.innerHTML = '';
+    socket.on('players_update', function(data) {
+      document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
+    });
 
-    const gameType = document.createElement('div');
-    const promptDisplay = document.createElement('div');
+    socket.on('serve_prompt', function(data) {
+      const gameType = document.getElementById('game-type');
+      const promptDisplay = document.getElementById('prompt-display');
+      const readySection = document.getElementById('ready-section');
 
-    gameType.id = "game-type";
-    gameType.innerText = `Game: ${data.prompt_type.toUpperCase()}`;
-
-    promptDisplay.id = "prompt-display";
-    promptDisplay.innerText = data.prompt_text;
-
-    document.body.appendChild(gameType);
-    document.body.appendChild(promptDisplay);
-  });
-</script>
-
+      gameType.innerText = `Game: ${data.prompt_type.toUpperCase()}`;
+      promptDisplay.innerText = data.prompt_text;
+      readySection.style.display = 'block';
+    });
+  </script>
 </body>
 </html>
