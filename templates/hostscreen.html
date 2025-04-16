@@ -6,75 +6,74 @@
   <title>Host Screen - Fakin' It</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      background-color: white;
-    }
-    #player-list {
-      margin-top: 20px;
-      font-weight: bold;
-    }
-    #start-button {
-      margin-top: 30px;
-      font-size: 1.2em;
-      padding: 10px 20px;
-    }
-    #countdown {
-      margin-top: 20px;
-      font-size: 2em;
-      color: red;
-    }
-    #ready-count {
-      margin-top: 10px;
-      font-size: 1.2em;
-      color: green;
-    }
+      body {
+          font-family: Arial, sans-serif;
+          text-align: center;
+          padding: 20px;
+          background-color: white;
+      }
+      #player-list {
+          margin-top: 20px;
+          font-weight: bold;
+      }
+      #start-button {
+          margin-top: 30px;
+          font-size: 1.2em;
+          padding: 10px 20px;
+      }
+      #countdown {
+          margin-top: 20px;
+          font-size: 2em;
+          color: red;
+      }
+      #prompt {
+          margin-top: 20px;
+          font-size: 1.5em;
+          font-weight: bold;
+      }
   </style>
 </head>
 <body>
-  <h1>Host Screen</h1>
+    <h1>Host Screen</h1>
 
-  <div id="player-list">Players: </div>
-  <div id="ready-count">Ready: 0</div>
-  <button id="start-button" onclick="startGame()">Start Game</button>
-  <div id="countdown">Waiting to start...</div>
+    <div id="player-list">Players: </div>
+    <button id="start-button" onclick="startGame()">Start Game</button>
+    <div id="countdown">Waiting to start...</div>
+    <div id="prompt"></div>
 
-  <script>
-    const socket = io.connect('http://' + document.domain + ':' + location.port);
+    <script>
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
 
-    socket.on('players_update', function(data) {
-      document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
-    });
+        socket.on('players_update', function(data) {
+            document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
+        });
 
-    socket.on('ready_update', function(data) {
-      document.getElementById('ready-count').innerText =
-        `Ready: ${data.ready_count}/${data.total_players}`;
-    });
-
-    function startGame() {
-      socket.emit('start_game');
-    }
-
-    socket.on('start_countdown', function(data) {
-      let seconds = data.seconds;
-      const countdownDiv = document.getElementById('countdown');
-
-      const interval = setInterval(() => {
-        countdownDiv.innerText = `Time left: ${seconds}s`;
-        seconds--;
-        if (seconds < 0) {
-          clearInterval(interval);
-          countdownDiv.innerText = "Time's up!";
+        function startGame() {
+            socket.emit('start_game');
         }
-      }, 1000);
-    });
 
-    socket.on('host_prompt', function(data) {
-      document.getElementById('countdown').innerHTML =
-        `<strong>Game:</strong> ${data.prompt_type.toUpperCase()}<br><strong>Prompt:</strong> ${data.prompt_text}`;
-    });
-  </script>
+        socket.on('start_countdown', function(data) {
+            let seconds = data.seconds;
+            const countdownDiv = document.getElementById('countdown');
+
+            if (seconds === 0) {
+                countdownDiv.innerText = "Time's up!";
+            } else {
+                const interval = setInterval(() => {
+                    countdownDiv.innerText = `Time left: ${seconds}s`;
+                    seconds--;
+                    if (seconds < 0) {
+                        clearInterval(interval);
+                        countdownDiv.innerText = "Time's up!";
+                    }
+                }, 1000);
+            }
+        });
+
+        socket.on('show_prompt', function(data) {
+            document.getElementById('prompt').innerText = `Prompt: ${data.prompt}`;
+            document.getElementById('countdown').style.display = 'none';  // Hide countdown
+        });
+    </script>
 </body>
 </html>

@@ -19,9 +19,6 @@
     #username-container {
       margin-bottom: 20px;
     }
-    #ready-section {
-      margin-top: 20px;
-    }
     #game-type {
       font-size: 1.5em;
       font-weight: bold;
@@ -30,6 +27,9 @@
     #prompt-display {
       font-size: 1.2em;
       margin-top: 20px;
+    }
+    #vote-buttons {
+      margin-top: 30px;
     }
   </style>
 </head>
@@ -44,28 +44,25 @@
 
   <div id="players">Players: </div>
 
-  <div id="game-type"></div>
+  <!-- Game state UI (will show after joining game) -->
+  <div id="game-type">Waiting for game to start...</div>
   <div id="prompt-display"></div>
 
-  <div id="ready-section" style="display: none;">
-    <button onclick="sendReady()">I'm Ready</button>
+  <div id="vote-buttons" style="display:none;">
+    <h3>Vote for the faker:</h3>
+    <!-- Dynamically populated buttons will go here -->
   </div>
 
   <script>
     const socket = io.connect('http://' + document.domain + ':' + location.port);
-    let username = '';
 
+    // Join game
     function joinGame() {
-      username = document.getElementById('username').value.trim();
-      if (username) {
-        socket.emit('join_game', { username: username });
-        document.getElementById('username-container').style.display = 'none';
-      }
-    }
+      const username = document.getElementById('username').value;
+      if (username.trim() === "") return;
 
-    function sendReady() {
-      socket.emit('player_ready', { username: username });
-      document.getElementById('ready-section').innerHTML = "Waiting for others...";
+      socket.emit('join_game', {username: username});
+      document.getElementById('username-container').style.display = 'none';  // Hide username input
     }
 
     socket.on('players_update', function(data) {
@@ -73,13 +70,11 @@
     });
 
     socket.on('serve_prompt', function(data) {
-      const gameType = document.getElementById('game-type');
-      const promptDisplay = document.getElementById('prompt-display');
-      const readySection = document.getElementById('ready-section');
+      document.getElementById('prompt-display').innerText = data.prompt;
+    });
 
-      gameType.innerText = `Game: ${data.prompt_type.toUpperCase()}`;
-      promptDisplay.innerText = data.prompt_text;
-      readySection.style.display = 'block';
+    socket.on('vote_update', function(data) {
+      console.log('Votes: ', data.votes);
     });
   </script>
 </body>
