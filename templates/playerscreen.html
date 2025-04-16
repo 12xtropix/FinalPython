@@ -31,6 +31,10 @@
     #vote-buttons {
       margin-top: 30px;
     }
+    button.vote-btn {
+      margin: 5px;
+      padding: 10px 20px;
+    }
   </style>
 </head>
 <body>
@@ -43,39 +47,62 @@
   </div>
 
   <div id="players">Players: </div>
-
-  <!-- Game state UI (will show after joining game) -->
   <div id="game-type">Waiting for game to start...</div>
   <div id="prompt-display"></div>
 
   <div id="vote-buttons" style="display:none;">
     <h3>Vote for the faker:</h3>
-    <!-- Dynamically populated buttons will go here -->
+    <div id="vote-options"></div>
   </div>
 
   <script>
     const socket = io.connect('http://' + document.domain + ':' + location.port);
+    let currentUsername = "";
 
-    // Join game
     function joinGame() {
       const username = document.getElementById('username').value;
       if (username.trim() === "") return;
 
-      socket.emit('join_game', {username: username});
-      document.getElementById('username-container').style.display = 'none';  // Hide username input
+      currentUsername = username;
+      socket.emit('join_game', {username});
+      document.getElementById('username-container').style.display = 'none';
     }
 
     socket.on('players_update', function(data) {
       document.getElementById('players').innerText = 'Players: ' + data.players.join(', ');
+      updateVoteButtons(data.players);
     });
 
     socket.on('serve_prompt', function(data) {
       document.getElementById('prompt-display').innerText = data.prompt;
+      document.getElementById('vote-buttons').style.display = 'block';
     });
 
-    socket.on('vote_update', function(data) {
-      console.log('Votes: ', data.votes);
+    socket.on('round_results', function(data) {
+      alert("Round Results:\n" + JSON.stringify(data.votes, null, 2));
     });
+
+    socket.on('game_over', function(data) {
+      alert(data.message);
+      location.reload();
+    });
+
+    function updateVoteButtons(players) {
+      const voteContainer = document.getElementById('vote-options');
+      voteContainer.innerHTML = '';
+      players.forEach(player => {
+        if (player !== currentUsername) {
+          const btn = document.createElement('button');
+          btn.className = "vote-btn";
+          btn.innerText = player;
+          btn.onclick = () => {
+            socket.emit('vote', {player_name: currentUsername, voted_for: player});
+            document.getElementById('vote-buttons').style.display = 'none';
+          };
+          voteContainer.appendChild(btn);
+        }
+      });
+    }
   </script>
 </body>
 </html>
