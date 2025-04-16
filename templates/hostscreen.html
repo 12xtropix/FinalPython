@@ -6,74 +6,113 @@
   <title>Host Screen - Fakin' It</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
   <style>
-      body {
-          font-family: Arial, sans-serif;
-          text-align: center;
-          padding: 20px;
-          background-color: white;
-      }
-      #player-list {
-          margin-top: 20px;
-          font-weight: bold;
-      }
-      #start-button {
-          margin-top: 30px;
-          font-size: 1.2em;
-          padding: 10px 20px;
-      }
-      #countdown {
-          margin-top: 20px;
-          font-size: 2em;
-          color: red;
-      }
-      #prompt {
-          margin-top: 20px;
-          font-size: 1.5em;
-          font-weight: bold;
-      }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: white;
+    }
+    #player-list {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .host-button {
+      margin-top: 30px;
+      font-size: 1.2em;
+      padding: 10px 20px;
+    }
+    #countdown {
+      margin-top: 20px;
+      font-size: 2em;
+      color: red;
+    }
+    #prompt {
+      margin-top: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    #category {
+      margin-top: 10px;
+      font-size: 1.2em;
+      font-style: italic;
+      color: gray;
+    }
+    #results {
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
   </style>
 </head>
 <body>
-    <h1>Host Screen</h1>
+  <h1>Host Screen</h1>
 
-    <div id="player-list">Players: </div>
-    <button id="start-button" onclick="startGame()">Start Game</button>
-    <div id="countdown">Waiting to start...</div>
-    <div id="prompt"></div>
+  <div id="player-list">Players: </div>
+  <button id="start-button" class="host-button" onclick="startGame()">Start Game</button>
+  <button id="next-button" class="host-button" onclick="nextRound()" style="display:none;">Next Round</button>
 
-    <script>
-        const socket = io.connect('http://' + document.domain + ':' + location.port);
+  <div id="category"></div>
+  <div id="prompt"></div>
+  <div id="countdown">Waiting to start...</div>
+  <div id="results"></div>
 
-        socket.on('players_update', function(data) {
-            document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
-        });
+  <script>
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+    let countdownInterval = null;
 
-        function startGame() {
-            socket.emit('start_game');
-        }
+    socket.on('players_update', function(data) {
+      document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
+    });
 
-        socket.on('start_countdown', function(data) {
-            let seconds = data.seconds;
-            const countdownDiv = document.getElementById('countdown');
+    function startGame() {
+      socket.emit('start_game');
+      document.getElementById('start-button').style.display = 'none';
+    }
 
-            if (seconds === 0) {
-                countdownDiv.innerText = "Time's up!";
-            } else {
-                const interval = setInterval(() => {
-                    countdownDiv.innerText = `Time left: ${seconds}s`;
-                    seconds--;
-                    if (seconds < 0) {
-                        clearInterval(interval);
-                        countdownDiv.innerText = "Time's up!";
-                    }
-                }, 1000);
-            }
-        });
+    function nextRound() {
+      socket.emit('next_round');
+      document.getElementById('next-button').style.display = 'none';
+      document.getElementById('results').innerText = '';
+      document.getElementById('countdown').innerText = 'Waiting for players to be ready...';
+      document.getElementById('prompt').innerText = '';
+      document.getElementById('category').innerText = '';
+    }
 
-        socket.on('show_prompt', function(data) {
-            document.getElementById('prompt').innerText = `Prompt: ${data.prompt}`;
-            document.getElementById('countdown').style.display = 'none';  // Hide countdown
-        });
-    </script>
+    socket.on('show_prompt', function(data) {
+      document.getElementById('category').innerText = `Category: ${data.category}`;
+      document.getElementById('prompt').innerText = `Prompt: ${data.prompt}`;
+    });
+
+    socket.on('start_countdown', function(data) {
+        let seconds = data.seconds || 20;
+        const countdownDiv = document.getElementById('countdown');
+
+        // Clear previous countdown before starting a new one
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        countdownInterval = setInterval(() => {
+           countdownDiv.innerText = `Time left: ${seconds}s`;
+    seconds--;
+    if (seconds < 0) {
+      clearInterval(countdownInterval);
+      countdownDiv.innerText = "Time's up!";
+    }
+  }, 1000);
+    });
+
+    socket.on('stop_countdown', function() {
+      if (countdownInterval) clearInterval(countdownInterval);
+    });
+
+    socket.on('round_results', function(data) {
+      const resultsDiv = document.getElementById('results');
+      const votes = data.votes;
+      let resultText = "Votes:\n";
+      for (let voter in votes) {
+        resultText += `${voter} ➜ ${votes[voter]}\n`;
+      }
+      resultsDiv.innerText = resultText;
+      document.getElementById('next-button').style.display = 'inline-block';
+    });
+  </script>
 </body>
 </html>

@@ -5,37 +5,34 @@ import random
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# Game data
 players = []
 prompts = []
-player_sockets = {}  # username -> socket ID
+player_sockets = {}
 ready_players = set()
 votes = {}
 
 game_data = {
     "current_round": 0,
-    "player_role": {},  # Mapping player -> role (faker or normal)
-    "current_prompt": ""
+    "player_role": {},
+    "current_prompt": "",
+    "current_category": "",
+    "round_ready": set()
 }
-
 
 @app.route('/')
 def index():
     return render_template('mainscreen.html')
 
-
 @app.route('/host')
 def host():
     return render_template('hostscreen.html')
-
 
 @app.route('/player')
 def player():
     return render_template('playerscreen.html')
 
-
 def generate_prompt_sequence():
-    alphabet = [chr(i) for i in range(65, 91)]  # A-Z
+    alphabet = [chr(i) for i in range(65, 91)]
     all_prompts = {
         "hands": [f"hands_{letter}" for letter in alphabet],
         "pointing": [f"pointing_{letter}" for letter in alphabet],
@@ -44,10 +41,9 @@ def generate_prompt_sequence():
 
     sequence = []
     for category in ["hands"] * 3 + ["pointing"] * 3 + ["numbers"] * 3:
-        sequence.append(random.choice(all_prompts[category]))
-
+        prompt = random.choice(all_prompts[category])
+        sequence.append((prompt, category))
     return sequence
-
 
 def start_next_round():
     round_index = game_data["current_round"]
@@ -56,26 +52,29 @@ def start_next_round():
         socketio.emit('game_over', {"message": "Game over! Thanks for playing!"})
         return
 
-    current_prompt = prompts[round_index]
+    current_prompt, current_category = prompts[round_index]
     game_data["current_prompt"] = current_prompt
+    game_data["current_category"] = current_category
+    game_data["round_ready"] = set()
     game_data["current_round"] += 1
-    global votes
     votes.clear()
 
+    # Serve the prompt directly to players
     for player in players:
         sid = player_sockets.get(player)
         role = game_data["player_role"].get(player)
         if not sid:
             continue
-
         if role == "faker":
-            socketio.emit('serve_prompt', {"prompt": "Who is the faker? Try to blend in!"}, room=sid)
+            socketio.emit('serve_prompt', {
+                "prompt": "You are the faker! Try to blend in!",
+                "category": current_category
+            }, room=sid)
         else:
-            socketio.emit('serve_prompt', {"prompt": current_prompt}, room=sid)
-
-    socketio.emit('show_prompt', {"prompt": current_prompt})
-    socketio.emit('start_countdown', {"seconds": 20})
-
+            socketio.emit('serve_prompt', {
+                "prompt": current_prompt,
+                "category": current_category
+            }, room=sid)
 
 @socketio.on('join_game')
 def handle_join_game(data):
@@ -91,7 +90,6 @@ def handle_join_game(data):
         emit('player_joined', {'message': f'{username} has joined the game!'}, broadcast=True)
         emit('players_update', {'players': players}, broadcast=True)
 
-
 @socketio.on('start_game')
 def handle_start_game():
     global prompts, ready_players
@@ -104,18 +102,22 @@ def handle_start_game():
         player: ("faker" if player == faker else "normal") for player in players
     }
 
+    socketio.emit("game_started")
     start_next_round()
-
 
 @socketio.on('ready')
 def handle_ready(data):
     player_name = data.get('player_name')
     if player_name:
-        ready_players.add(player_name)
+        game_data["round_ready"].add(player_name)
 
-    if len(ready_players) == len(players):
-        start_next_round()
-
+    if len(game_data["round_ready"]) == len(players):
+        # Only now show the prompt on the host screen and start countdown
+        socketio.emit('show_prompt', {
+            "prompt": game_data["current_prompt"],
+            "category": game_data["current_category"]
+        })
+        socketio.emit('start_countdown', {"seconds": 20})
 
 @socketio.on('vote')
 def handle_vote(data):
@@ -124,18 +126,24 @@ def handle_vote(data):
     if player_name and voted_for:
         votes[player_name] = voted_for
 
-    socketio.emit('vote_update', {'votes': votes}, room=player_sockets.get('host'))
-
     if len(votes) == len(players):
         socketio.emit('round_results', {"votes": votes})
         socketio.sleep(5)
         start_next_round()
+
+    if len(votes) == len(players):
+        socketio.emit('round_results', {"votes": votes})
+        socketio.emit('stop_countdown')
 
 
 @socketio.on('connect')
 def handle_connect():
     emit('players_update', {'players': players})
 
+@socketio.on('next_round')
+def handle_next_round():
+    start_next_round()
+
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=4000, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
