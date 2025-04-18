@@ -149,7 +149,7 @@ def handle_vote(data):
         socketio.emit('round_results', {"votes": votes})
         socketio.emit('stop_countdown')
 
-
+#
 @socketio.on('connect')
 def handle_connect():
     emit('players_update', {'players': players})

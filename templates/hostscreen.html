@@ -155,7 +155,7 @@
     socket.on('stop_countdown', function() {
       if (countdownInterval) clearInterval(countdownInterval);
     });
-
+#
     socket.on('round_results', function(data) {
       const resultsDiv = document.getElementById('results');
       const votes = data.votes;
