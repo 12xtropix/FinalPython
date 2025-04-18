@@ -112,12 +112,14 @@ def handle_ready(data):
         game_data["round_ready"].add(player_name)
 
     if len(game_data["round_ready"]) == len(players):
-        # Only now show the prompt on the host screen and start countdown
-        socketio.emit('show_prompt', {
-            "prompt": game_data["current_prompt"],
-            "category": game_data["current_category"]
-        })
-        socketio.emit('start_countdown', {"seconds": 20})
+        # Send to host only
+        for name, sid in player_sockets.items():
+            if name.lower() == "host":  # Optional: tag someone as host
+                socketio.emit('pre_prompt_countdown', room=sid)
+                break
+        else:
+            # Fallback: send to everyone (for testing)
+            socketio.emit('pre_prompt_countdown')
 
 @socketio.on('trigger_prompt_reveal')
 def handle_trigger_prompt_reveal():
@@ -149,7 +151,7 @@ def handle_vote(data):
         socketio.emit('round_results', {"votes": votes})
         socketio.emit('stop_countdown')
 
-#
+
 @socketio.on('connect')
 def handle_connect():
     emit('players_update', {'players': players})
