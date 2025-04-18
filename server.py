@@ -119,6 +119,20 @@ def handle_ready(data):
         })
         socketio.emit('start_countdown', {"seconds": 20})
 
+@socketio.on('trigger_prompt_reveal')
+def handle_trigger_prompt_reveal():
+    current_prompt = game_data["current_prompt"]
+    current_category = game_data["current_category"]
+
+    # Show prompt on host screen
+    socketio.emit('show_prompt', {
+        "prompt": current_prompt,
+        "category": current_category
+    })
+
+    # Start 30s countdown
+    socketio.emit('start_countdown', {"seconds": 30})
+
 @socketio.on('vote')
 def handle_vote(data):
     player_name = data.get('player_name')

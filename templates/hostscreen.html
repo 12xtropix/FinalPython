@@ -25,6 +25,7 @@
       margin-top: 20px;
       font-size: 2em;
       color: red;
+      min-height: 2em;
     }
     #prompt {
       margin-top: 20px;
@@ -40,6 +41,25 @@
     #results {
       margin-top: 20px;
       font-size: 1.1em;
+    }
+    .go-animate {
+      font-size: 4em;
+      color: green;
+      animation: goPulse 1s ease-in-out;
+    }
+    @keyframes goPulse {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.5);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
   </style>
 </head>
@@ -75,28 +95,61 @@
       document.getElementById('countdown').innerText = 'Waiting for players to be ready...';
       document.getElementById('prompt').innerText = '';
       document.getElementById('category').innerText = '';
+      document.getElementById('countdown').className = '';
     }
 
     socket.on('show_prompt', function(data) {
       document.getElementById('category').innerText = `Category: ${data.category}`;
       document.getElementById('prompt').innerText = `Prompt: ${data.prompt}`;
+      document.getElementById('countdown').className = '';
+    });
+
+    socket.on('pre_prompt_countdown', function() {
+      const countdownDiv = document.getElementById('countdown');
+      const promptDiv = document.getElementById('prompt');
+      const categoryDiv = document.getElementById('category');
+
+      promptDiv.innerText = '';
+      categoryDiv.innerText = '';
+      document.getElementById('results').innerText = '';
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      let seconds = 3;
+      countdownDiv.innerText = `Get ready... ${seconds}`;
+      countdownInterval = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+          countdownDiv.innerText = `Get ready... ${seconds}`;
+        } else {
+          clearInterval(countdownInterval);
+          countdownDiv.innerText = "";
+          setTimeout(() => {
+            countdownDiv.innerText = "GO!";
+            countdownDiv.className = 'go-animate';  // 🎉 animation trigger
+            setTimeout(() => {
+              countdownDiv.className = ''; // remove animation class after showing
+              socket.emit("trigger_prompt_reveal");
+            }, 1000); // 1 second after GO!
+          }, 1000); // delay before showing GO!
+        }
+      }, 1000);
     });
 
     socket.on('start_countdown', function(data) {
-        let seconds = data.seconds || 20;
-        const countdownDiv = document.getElementById('countdown');
+      let seconds = data.seconds || 30;
+      const countdownDiv = document.getElementById('countdown');
 
-        // Clear previous countdown before starting a new one
-        if (countdownInterval) clearInterval(countdownInterval);
+      if (countdownInterval) clearInterval(countdownInterval);
 
-        countdownInterval = setInterval(() => {
-           countdownDiv.innerText = `Time left: ${seconds}s`;
-    seconds--;
-    if (seconds < 0) {
-      clearInterval(countdownInterval);
-      countdownDiv.innerText = "Time's up!";
-    }
-  }, 1000);
+      countdownInterval = setInterval(() => {
+        countdownDiv.innerText = `Time left: ${seconds}s`;
+        countdownDiv.className = '';  // remove GO animation class
+        seconds--;
+        if (seconds < 0) {
+          clearInterval(countdownInterval);
+          countdownDiv.innerText = "Time's up!";
+        }
+      }, 1000);
     });
 
     socket.on('stop_countdown', function() {
