@@ -16,8 +16,11 @@ game_data = {
     "player_role": {},
     "current_prompt": "",
     "current_category": "",
-    "round_ready": set()
+    "round_ready": set(),
+    "current_faker": None,
+    "last_faker_category": None
 }
+
 
 @app.route('/')
 def index():
@@ -57,14 +60,28 @@ def start_next_round():
     game_data["current_category"] = current_category
     game_data["round_ready"] = set()
     game_data["current_round"] += 1
+    global votes
     votes.clear()
 
-    # Serve the prompt directly to players
+    # 🔥 Assign new faker if category has changed
+    if game_data["last_faker_category"] != current_category:
+        game_data["current_faker"] = random.choice(players)
+        game_data["last_faker_category"] = current_category
+        print(f"🔥 New faker for category '{current_category}': {game_data['current_faker']}")
+
+    # Assign roles
+    game_data["player_role"] = {
+        player: ("faker" if player == game_data["current_faker"] else "normal")
+        for player in players
+    }
+
+    # Immediately send prompt to players
     for player in players:
         sid = player_sockets.get(player)
         role = game_data["player_role"].get(player)
         if not sid:
             continue
+
         if role == "faker":
             socketio.emit('serve_prompt', {
                 "prompt": "You are the faker! Try to blend in!",
@@ -75,6 +92,7 @@ def start_next_round():
                 "prompt": current_prompt,
                 "category": current_category
             }, room=sid)
+
 
 @socketio.on('join_game')
 def handle_join_game(data):
@@ -144,12 +162,10 @@ def handle_vote(data):
 
     if len(votes) == len(players):
         socketio.emit('round_results', {"votes": votes})
-        socketio.sleep(5)
-        start_next_round()
-
-    if len(votes) == len(players):
-        socketio.emit('round_results', {"votes": votes})
         socketio.emit('stop_countdown')
+        socketio.emit('hide_countdown')
+        # DO NOT call start_next_round() here
+
 
 
 @socketio.on('connect')
