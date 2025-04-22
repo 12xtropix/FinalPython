@@ -41,11 +41,12 @@
     #results {
       margin-top: 20px;
       font-size: 1.1em;
+      white-space: pre-line;
     }
     .go-animate {
       font-size: 4em;
       color: green;
-      animation: goPulse 1s ease-in-out;
+      animation: goPulse 0.6s ease-in-out;
     }
     @keyframes goPulse {
       0% {
@@ -76,96 +77,108 @@
   <div id="results"></div>
 
   <script>
-  const socket = io.connect('http://' + document.domain + ':' + location.port);
-  let countdownInterval = null;
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+    let countdownInterval = null;
 
-  socket.on('players_update', function(data) {
-    document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
-  });
+    socket.on('players_update', function(data) {
+      document.getElementById('player-list').innerText = 'Players: ' + data.players.join(', ');
+    });
 
-  function startGame() {
-    socket.emit('start_game');
-    document.getElementById('start-button').style.display = 'none';
-  }
+    function startGame() {
+      socket.emit('start_game');
+      document.getElementById('start-button').style.display = 'none';
+      console.log("📡 Emitting 'start_game'");
 
-  function nextRound() {
-  socket.emit('next_round');
-  document.getElementById('next-button').style.display = 'none';
-  document.getElementById('results').innerText = '';
-  document.getElementById('countdown').innerText = 'Waiting for players to be ready...';
-  document.getElementById('prompt').innerText = '';
-  document.getElementById('category').innerText = '';
-  document.getElementById('countdown').className = '';
-  if (countdownInterval) clearInterval(countdownInterval);
-}
-
-
-  socket.on('pre_prompt_countdown', function() {
-    const countdownDiv = document.getElementById('countdown');
-    const promptDiv = document.getElementById('prompt');
-    const categoryDiv = document.getElementById('category');
-
-    promptDiv.innerText = '';
-    categoryDiv.innerText = '';
-    document.getElementById('results').innerText = '';
-    if (countdownInterval) clearInterval(countdownInterval);
-
-    let seconds = 3;
-    countdownDiv.innerText = `Get ready... ${seconds}`;
-    countdownInterval = setInterval(() => {
-      seconds--;
-      if (seconds > 0) {
-        countdownDiv.innerText = `Get ready... ${seconds}`;
-      } else {
-        clearInterval(countdownInterval);
-        countdownDiv.innerText = "";
-        setTimeout(() => {
-          countdownDiv.innerText = "GO!";
-          countdownDiv.className = 'go-animate';
-          setTimeout(() => {
-            countdownDiv.className = '';
-            socket.emit("trigger_prompt_reveal");
-          }, 400);  // shorter GO! duration
-        }, 300);    // shorter pause before GO!
-      }
-    }, 1000);
-  });
-
-  socket.on('start_countdown', function(data) {
-    let seconds = data.seconds || 30;
-    const countdownDiv = document.getElementById('countdown');
-
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownDiv.className = '';
-
-    countdownInterval = setInterval(() => {
-      countdownDiv.innerText = `Time left: ${seconds}s`;
-      seconds--;
-      if (seconds < 0) {
-        clearInterval(countdownInterval);
-        countdownDiv.innerText = "Time's up!";
-      }
-    }, 1000);
-  });
-
-  socket.on('stop_countdown', function() {
-    if (countdownInterval) clearInterval(countdownInterval);
-  });
-
-  socket.on('hide_countdown', function() {
-    document.getElementById('countdown').innerText = '';
-  });
-
-  socket.on('round_results', function(data) {
-    const resultsDiv = document.getElementById('results');
-    const votes = data.votes;
-    let resultText = "Votes:\n";
-    for (let voter in votes) {
-      resultText += `${voter} ➜ ${votes[voter]}\n`;
     }
-    resultsDiv.innerText = resultText;
-    document.getElementById('next-button').style.display = 'inline-block';
-  });
-</script>
+
+    function nextRound() {
+      socket.emit('next_round');
+      document.getElementById('next-button').style.display = 'none';
+      document.getElementById('results').innerText = '';
+      document.getElementById('countdown').innerText = 'Waiting for players to be ready...';
+      document.getElementById('prompt').innerText = '';
+      document.getElementById('category').innerText = '';
+      document.getElementById('countdown').className = '';
+      if (countdownInterval) clearInterval(countdownInterval);
+    }
+
+    socket.on('pre_prompt_countdown', function() {
+      const countdownDiv = document.getElementById('countdown');
+      const promptDiv = document.getElementById('prompt');
+      const categoryDiv = document.getElementById('category');
+
+      promptDiv.innerText = '';
+      categoryDiv.innerText = '';
+      document.getElementById('results').innerText = '';
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      let seconds = 3;
+      countdownDiv.innerText = `Get ready... ${seconds}`;
+      countdownInterval = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+          countdownDiv.innerText = `Get ready... ${seconds}`;
+        } else {
+          clearInterval(countdownInterval);
+          countdownDiv.innerText = "";
+          setTimeout(() => {
+            countdownDiv.innerText = "GO!";
+            countdownDiv.className = 'go-animate';
+            setTimeout(() => {
+              countdownDiv.className = '';
+              socket.emit("trigger_prompt_reveal");
+            }, 400);
+          }, 300);
+        }
+      }, 1000);
+    });
+
+    socket.on('show_prompt', function(data) {
+      document.getElementById('category').innerText = `Category: ${data.category}`;
+      document.getElementById('prompt').innerText = `Prompt: ${data.prompt}`;
+    });
+
+    socket.on('start_countdown', function(data) {
+      let seconds = data.seconds || 30;
+      const countdownDiv = document.getElementById('countdown');
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownDiv.className = '';
+
+      countdownInterval = setInterval(() => {
+        countdownDiv.innerText = `Time left: ${seconds}s`;
+        seconds--;
+        if (seconds < 0) {
+          clearInterval(countdownInterval);
+          countdownDiv.innerText = "Time's up!";
+        }
+      }, 1000);
+    });
+
+    socket.on('stop_countdown', function() {
+      if (countdownInterval) clearInterval(countdownInterval);
+    });
+
+    socket.on('hide_countdown', function() {
+      document.getElementById('countdown').innerText = '';
+    });
+
+    socket.on('round_results', function(data) {
+      const resultsDiv = document.getElementById('results');
+      const votes = data.votes;
+      const message = data.message;
+      let resultText = `${message}\n\nVotes:\n`;
+      for (let voter in votes) {
+        resultText += `${voter} ➜ ${votes[voter]}\n`;
+      }
+      resultsDiv.innerText = resultText;
+      document.getElementById('next-button').style.display = 'inline-block';
+    });
+
+    socket.on('game_over', function(data) {
+      document.getElementById('countdown').innerText = data.message;
+      document.getElementById('next-button').style.display = 'none';
+    });
+  </script>
 </body>
 </html>

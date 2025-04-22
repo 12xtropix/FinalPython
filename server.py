@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room
 import random
+import json
+import os
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -35,18 +37,20 @@ def player():
     return render_template('playerscreen.html')
 
 def generate_prompt_sequence():
-    alphabet = [chr(i) for i in range(65, 91)]
-    all_prompts = {
-        "hands": [f"hands_{letter}" for letter in alphabet],
-        "pointing": [f"pointing_{letter}" for letter in alphabet],
-        "numbers": [f"numbers_{letter}" for letter in alphabet]
-    }
+    with open(os.path.join(os.path.dirname(__file__), 'prompts.json'), encoding='utf-8') as f:
+        all_prompts = json.load(f)
 
     sequence = []
     for category in ["hands"] * 3 + ["pointing"] * 3 + ["numbers"] * 3:
-        prompt = random.choice(all_prompts[category])
-        sequence.append((prompt, category))
+        if all_prompts[category]:
+            prompt = random.choice(all_prompts[category])
+            sequence.append((prompt, category))
+            all_prompts[category].remove(prompt)
+        else:
+            sequence.append(("No prompt available", category))
     return sequence
+
+
 
 def start_next_round():
     round_index = game_data["current_round"]
@@ -112,16 +116,13 @@ def handle_join_game(data):
 def handle_start_game():
     global prompts, ready_players
     prompts = generate_prompt_sequence()
+    print("✅ Prompts generated:", prompts)  # DEBUG LINE
     ready_players = set()
     game_data["current_round"] = 0
-
-    faker = random.choice(players)
-    game_data["player_role"] = {
-        player: ("faker" if player == faker else "normal") for player in players
-    }
-
+    game_data["last_faker_category"] = None
     socketio.emit("game_started")
     start_next_round()
+
 
 @socketio.on('ready')
 def handle_ready(data):
@@ -144,14 +145,15 @@ def handle_trigger_prompt_reveal():
     current_prompt = game_data["current_prompt"]
     current_category = game_data["current_category"]
 
-    # Show prompt on host screen
+    #  Send prompt to the host AND all players
     socketio.emit('show_prompt', {
         "prompt": current_prompt,
         "category": current_category
     })
 
-    # Start 30s countdown
     socketio.emit('start_countdown', {"seconds": 30})
+
+
 
 @socketio.on('vote')
 def handle_vote(data):
@@ -161,11 +163,43 @@ def handle_vote(data):
         votes[player_name] = voted_for
 
     if len(votes) == len(players):
-        socketio.emit('round_results', {"votes": votes})
+        faker = game_data["current_faker"]
+        normal_voters = [p for p in players if p != faker]
+        voted_for_faker = all(votes.get(p) == faker for p in normal_voters)
+
         socketio.emit('stop_countdown')
         socketio.emit('hide_countdown')
-        # DO NOT call start_next_round() here
 
+        if voted_for_faker:
+            socketio.emit('round_results', {
+                "votes": votes,
+                "message": f"The faker **{faker}** has been caught!"
+            })
+            skip_to_next_game_category()
+        else:
+            socketio.emit('round_results', {
+                "votes": votes,
+                "message": "Voting complete."
+            })
+
+
+def skip_to_next_game_category():
+    current_index = game_data["current_round"]
+    current_category = game_data["current_category"]
+
+    # Find index of first round with a different category
+    for i in range(current_index, len(prompts)):
+        _, category = prompts[i]
+        if category != current_category:
+            game_data["current_round"] = i
+            break
+    else:
+        # If no next category, end game
+        socketio.emit('game_over', {"message": "Game over! Thanks for playing!"})
+        return
+
+    game_data["round_ready"] = set()
+    start_next_round()
 
 
 @socketio.on('connect')
