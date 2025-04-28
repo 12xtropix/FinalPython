@@ -68,6 +68,13 @@
   <h1>Host Screen</h1>
 
   <div id="player-list">Players: </div>
+
+  <div id="qr-section">
+    <p>Scan to join:</p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=http://10.1.133.239:5000/player"
+         alt="QR Code to join" style="width:200px; height:200px;">
+  </div>
+
   <button id="start-button" class="host-button" onclick="startGame()">Start Game</button>
   <button id="next-button" class="host-button" onclick="nextRound()" style="display:none;">Next Round</button>
 
@@ -87,8 +94,7 @@
     function startGame() {
       socket.emit('start_game');
       document.getElementById('start-button').style.display = 'none';
-      console.log("📡 Emitting 'start_game'");
-
+      document.getElementById('qr-section').style.display = 'none';
     }
 
     function nextRound() {

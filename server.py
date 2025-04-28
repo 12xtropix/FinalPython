@@ -67,11 +67,11 @@ def start_next_round():
     global votes
     votes.clear()
 
-    # 🔥 Assign new faker if category has changed
+    # Assign new faker if category has changed
     if game_data["last_faker_category"] != current_category:
         game_data["current_faker"] = random.choice(players)
         game_data["last_faker_category"] = current_category
-        print(f"🔥 New faker for category '{current_category}': {game_data['current_faker']}")
+        print(f" New faker for category '{current_category}': {game_data['current_faker']}")
 
     # Assign roles
     game_data["player_role"] = {
@@ -116,7 +116,6 @@ def handle_join_game(data):
 def handle_start_game():
     global prompts, ready_players
     prompts = generate_prompt_sequence()
-    print("✅ Prompts generated:", prompts)  # DEBUG LINE
     ready_players = set()
     game_data["current_round"] = 0
     game_data["last_faker_category"] = None
