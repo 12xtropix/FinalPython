@@ -41,7 +41,7 @@ def generate_prompt_sequence():
         all_prompts = json.load(f)
 
     sequence = []
-    for category in ["hands"] * 3 + ["pointing"] * 3 + ["numbers"] * 3:
+    for category in ["hands"] * 4 + ["pointing"] * 4 + ["numbers"] * 4:
         if all_prompts[category]:
             prompt = random.choice(all_prompts[category])
             sequence.append((prompt, category))
